@@ -17,7 +17,8 @@ namespace OVR_App_Template
         {
             get
             {
-                return _trackedDevices.ToArray();
+                var trt = _trackedDevices.ToArray();
+                return trt;
             }
         }
 
@@ -47,24 +48,26 @@ namespace OVR_App_Template
             }
         }
 
-        private string[] OldETrackedDeviceClasses;
-        private string[] CurrentETrackedDeviceClasses;
+        private string[] OldETrackedDeviceClasses = new string[OpenVR.k_unMaxTrackedDeviceCount];
+        private string[] CurrentETrackedDeviceClasses = new string[OpenVR.k_unMaxTrackedDeviceCount];
 
         public VRDevices()
         {
-            InitializeDevices();
+            Update();
         }
 
-        private void InitializeDevices()
+        private void InitializeDevices(TrackedDevicePose_t[] trackedDevicePoses)
         {
-            Debug.WriteLine("Initializing Devices");
+            Debug.WriteLine("==========Initializing Devices==========");
 
             //clear list
-            _trackedDevices = new List<VRTrackedDevice>();
+            _trackedDevices.Clear();
 
             //looping through all possible devices
             for (uint i = 0; i < OpenVR.k_unMaxTrackedDeviceCount; i++)
             {
+                if (trackedDevicePoses[i].eTrackingResult == ETrackingResult.Uninitialized)
+                    continue;
 
                 ETrackedDeviceClass tClass = OpenVR.System.GetTrackedDeviceClass(i);
 
@@ -94,29 +97,41 @@ namespace OVR_App_Template
                 }
             }
 
-
+            for (uint i = 0; i < OpenVR.k_unMaxTrackedDeviceCount; i++)
+            {
+                OldETrackedDeviceClasses[i] = CurrentETrackedDeviceClasses[i];
+            }
         }
 
         public void Update()
         {
-            InitializeDevices();
-
             //query OpenVR for all device poses
             TrackedDevicePose_t[] trackedDevicePoses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
 
             OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0, trackedDevicePoses);
 
-            for(int i = 0; i < trackedDevices.Length; i++)
+            for (uint i = 0; i < OpenVR.k_unMaxTrackedDeviceCount; i++)
             {
-                Console.WriteLine(trackedDevices[i].DeviceID + " || " + OpenVR.System.GetTrackedDeviceClass(trackedDevices[i].DeviceID) + " "+ Enum.GetName(trackedDevicePoses[trackedDevices[i].DeviceID].eTrackingResult));
+                CurrentETrackedDeviceClasses[i] = (Enum.GetName(OpenVR.System.GetTrackedDeviceClass(i)) + " " + trackedDevicePoses[i].eTrackingResult.ToString()).ToString();           
+            }
 
+            for (uint i = 0; i < OpenVR.k_unMaxTrackedDeviceCount; i++)
+            {
+                if(OldETrackedDeviceClasses[i] != CurrentETrackedDeviceClasses[i])
+                {
+                    InitializeDevices(trackedDevicePoses);
+                    break;
+                }
+            }
+            //Console.Clear();
+            //DebugWriteTheThing();
+
+            for (int i = 0; i < trackedDevices.Length; i++)
+            {
                 trackedDevices[i].Update();
             }
 
             Console.SetCursorPosition(0, 0);
-
-            //assign old values
-            OldETrackedDeviceClasses = CurrentETrackedDeviceClasses;
         }
 
         private VRTrackedDevice GetController(VRTrackedDeviceClass controllerClass)
@@ -137,5 +152,14 @@ namespace OVR_App_Template
 
             return searchResult;
         }
+
+        private void DebugWriteTheThing()
+        {
+            for(int i = 0; i < 10; i++)
+            {
+                Console.WriteLine(CurrentETrackedDeviceClasses[i] + " ||| " + OldETrackedDeviceClasses[i]);
+            }
+        }
+
     }
 }

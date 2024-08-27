@@ -15,8 +15,11 @@ namespace OVR_App_Template
     {
         public VRTrackedDeviceClass Type { get; private set; }
         public uint DeviceID { get; private set; }
-        public Vector3 Position { get; private set; }
-        public Vector3 Rotation { get; private set; }
+
+        private Matrix4x4 matrix;
+
+        public Vector3 Position { get { return PositionFromMatrix(matrix); } }
+        public Vector3 Rotation { get { return RotationFromMatrix(matrix); } }
 
         public VRTrackedDevice(uint DeviceID, VRTrackedDeviceClass Type)
         {
@@ -34,26 +37,20 @@ namespace OVR_App_Template
 
                 TrackedDevicePose_t pose = trackedDevicePoses[0];
 
-                Matrix4x4 matrix = pose.mDeviceToAbsoluteTracking.ToMatrix4x4();
-
-                PrintPosition(matrix);
+                matrix = pose.mDeviceToAbsoluteTracking.ToMatrix4x4();
             }
             else
             {
-                PrintPosition(ControllerStateToMatrix());
+                VRControllerState_t state = new VRControllerState_t();
+                TrackedDevicePose_t pose = new TrackedDevicePose_t();
+
+                OpenVR.System.GetControllerStateWithPose(ETrackingUniverseOrigin.TrackingUniverseStanding, this.DeviceID, ref state, 1, ref pose);
+
+                matrix = pose.mDeviceToAbsoluteTracking.ToMatrix4x4();
             }
-        }
 
-        private Matrix4x4 ControllerStateToMatrix()
-        {
-            VRControllerState_t state = new VRControllerState_t();
-            TrackedDevicePose_t pose = new TrackedDevicePose_t();
-
-            OpenVR.System.GetControllerStateWithPose(ETrackingUniverseOrigin.TrackingUniverseStanding, this.DeviceID, ref state, 1, ref pose);
-
-            Matrix4x4 m = pose.mDeviceToAbsoluteTracking.ToMatrix4x4();
-
-            return m;
+            PrintPosition(matrix);
+            Console.WriteLine(this.Rotation.ToString());
         }
 
         private void PrintMatrix4x4(Matrix4x4 matrix)
@@ -67,7 +64,50 @@ namespace OVR_App_Template
         }
         private void PrintPosition(Matrix4x4 matrix)
         {
-            Console.WriteLine($"{this.DeviceID}: || {Pad(matrix.M41)} {Pad(matrix.M42)} {Pad(matrix.M43)}");
+            Console.WriteLine($"{Enum.GetName(this.Type)}({this.DeviceID}): || {Pad(matrix.M41)} {Pad(matrix.M42)} {Pad(matrix.M43)}");
+        }
+
+        private Vector3 PositionFromMatrix(Matrix4x4 m)
+        {
+            return new Vector3(m.M41, m.M42, m.M43);
+        }
+        private Vector3 RotationFromMatrix(Matrix4x4 m)
+        {
+            float pitch, yaw, roll;
+            float[,] matrix =
+            {
+                { m.M11, m.M12, m.M13},
+                { m.M21, m.M22, m.M23},
+                { m.M31, m.M32, m.M33}
+            };
+
+            // Check for Gimbal lock, when matrix[2, 0] is ±1
+            if (matrix[2, 0] > 0.998f) // Close to +1
+            {
+                pitch = (float)Math.Atan2(matrix[0, 1], matrix[0, 2]);
+                yaw = (float)Math.PI / 2;
+                roll = 0;
+            }
+            else if (matrix[2, 0] < -0.998f) // Close to -1
+            {
+                pitch = (float)Math.Atan2(matrix[0, 1], matrix[0, 2]);
+                yaw = -(float)Math.PI / 2;
+                roll = 0;
+            }
+            else
+            {
+                pitch = (float)Math.Atan2(-matrix[2, 1], matrix[2, 2]);
+                yaw = (float)Math.Asin(matrix[2, 0]);
+                roll = (float)Math.Atan2(-matrix[1, 0], matrix[0, 0]);
+            }
+
+
+            return new Vector3(RadToDeg(pitch), RadToDeg(yaw), RadToDeg(roll));
+        }
+
+        private float RadToDeg(float rad)
+        {
+            return rad * (180f / (float)Math.PI);
         }
 
         private string Pad(object inp)
