@@ -17,8 +17,7 @@ namespace OVR_App_Template
         {
             get
             {
-                var trt = _trackedDevices.ToArray();
-                return trt;
+                return _trackedDevices.ToArray();
             }
         }
 
@@ -48,11 +47,12 @@ namespace OVR_App_Template
             }
         }
 
-        private string[] OldETrackedDeviceClasses = new string[OpenVR.k_unMaxTrackedDeviceCount];
-        private string[] CurrentETrackedDeviceClasses = new string[OpenVR.k_unMaxTrackedDeviceCount];
+        private readonly string[] OldETrackedDeviceClasses = new string[OpenVR.k_unMaxTrackedDeviceCount];
+        private readonly string[] CurrentETrackedDeviceClasses = new string[OpenVR.k_unMaxTrackedDeviceCount];
 
         public VRDevices()
         {
+            //update method handles device initialization
             Update();
         }
 
@@ -112,19 +112,19 @@ namespace OVR_App_Template
 
             for (uint i = 0; i < OpenVR.k_unMaxTrackedDeviceCount; i++)
             {
-                CurrentETrackedDeviceClasses[i] = (Enum.GetName(OpenVR.System.GetTrackedDeviceClass(i)) + " " + trackedDevicePoses[i].eTrackingResult.ToString()).ToString();           
+                //use this as a kind-of "UUID" for each device.
+                CurrentETrackedDeviceClasses[i] = (Enum.GetName(OpenVR.System.GetTrackedDeviceClass(i)) + " " + trackedDevicePoses[i].eTrackingResult.ToString()).ToString();
             }
 
             for (uint i = 0; i < OpenVR.k_unMaxTrackedDeviceCount; i++)
             {
-                if(OldETrackedDeviceClasses[i] != CurrentETrackedDeviceClasses[i])
+                //if the status or class changes for any given device ID, this will trigger an update.
+                if (OldETrackedDeviceClasses[i] != CurrentETrackedDeviceClasses[i])
                 {
                     InitializeDevices(trackedDevicePoses);
                     break;
                 }
             }
-            //Console.Clear();
-            //DebugWriteTheThing();
 
             for (int i = 0; i < trackedDevices.Length; i++)
             {
@@ -134,12 +134,15 @@ namespace OVR_App_Template
             Console.SetCursorPosition(0, 0);
         }
 
+
         private VRTrackedDevice GetController(VRTrackedDeviceClass controllerClass)
         {
-            VRTrackedDevice searchResult = null;
+            VRTrackedDevice searchResult = null!; //postfix ! is a null-forgiving operator
 
             if (controllerClass != VRTrackedDeviceClass.LeftController || controllerClass != VRTrackedDeviceClass.RightController)
+            {
                 return searchResult;
+            }
 
             _trackedDevices.ForEach((device) =>
             {

@@ -5,9 +5,6 @@ using System.Numerics;
 using OVRSharp;
 using OVRSharp.Math;
 using Valve.VR;
-using System.Drawing;
-using System.Diagnostics;
-using System.Drawing.Drawing2D;
 
 namespace OVR_App_Template
 {
