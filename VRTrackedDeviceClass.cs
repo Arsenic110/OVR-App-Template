@@ -7,7 +7,7 @@ namespace OVR_App_Template
         HMD,
         RightController,
         LeftController,
-        HTCTracker,
+        Tracker,
         Generic,
         Other
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 using OVRSharp;
 using OVRSharp.Math;
@@ -8,12 +9,12 @@ using Valve.VR;
 
 namespace OVR_App_Template
 {
-    public class VRTrackedDevice
+    public abstract class VRTrackedDevice
     {
-        public VRTrackedDeviceClass Type { get; private set; }
-        public uint DeviceID { get; private set; }
+        public VRTrackedDeviceClass Type { get; protected set; }
+        public uint DeviceID { get; protected set; }
 
-        private Matrix4x4 matrix;
+        protected Matrix4x4 matrix;
 
         public Vector3 Position { get { return PositionFromMatrix(matrix); } }
         public Vector3 Rotation { get { return RotationFromMatrix(matrix); } }
@@ -24,33 +25,9 @@ namespace OVR_App_Template
             this.Type = Type;
         }
 
-        public void Update()
-        {
-            if(this.Type == VRTrackedDeviceClass.HMD)
-            {
-                TrackedDevicePose_t[] trackedDevicePoses = new TrackedDevicePose_t[1];
+        public abstract void Update();
 
-                OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0, trackedDevicePoses);
-
-                TrackedDevicePose_t pose = trackedDevicePoses[0];
-
-                matrix = pose.mDeviceToAbsoluteTracking.ToMatrix4x4();
-            }
-            else
-            {
-                VRControllerState_t state = new VRControllerState_t();
-                TrackedDevicePose_t pose = new TrackedDevicePose_t();
-
-                OpenVR.System.GetControllerStateWithPose(ETrackingUniverseOrigin.TrackingUniverseStanding, this.DeviceID, ref state, 1, ref pose);
-
-                matrix = pose.mDeviceToAbsoluteTracking.ToMatrix4x4();
-            }
-
-            PrintPosition(matrix);
-            Console.WriteLine(this.Rotation.ToString());
-        }
-
-        private void PrintMatrix4x4(Matrix4x4 matrix)
+        protected void PrintMatrix4x4(Matrix4x4 matrix)
         {
             Console.SetCursorPosition(0, 0);
             Console.WriteLine("===========================================");
@@ -59,16 +36,25 @@ namespace OVR_App_Template
             Console.WriteLine($"{Pad(matrix.M31)} {Pad(matrix.M32)} {Pad(matrix.M33)}");
             Console.WriteLine($"{Pad(matrix.M41)} {Pad(matrix.M42)} {Pad(matrix.M43)}"); //X Y Z
         }
-        private void PrintPosition(Matrix4x4 matrix)
+
+        protected void PrintPosition(Matrix4x4 matrix)
         {
             Console.WriteLine($"{Enum.GetName(this.Type)}({this.DeviceID}): || {Pad(matrix.M41)} {Pad(matrix.M42)} {Pad(matrix.M43)}");
         }
 
-        private Vector3 PositionFromMatrix(Matrix4x4 m)
+        protected void PrintRotation(Matrix4x4 matrix)
+        {
+            Vector3 rot = RotationFromMatrix(matrix);
+
+            Console.WriteLine($"{Enum.GetName(this.Type)}({this.DeviceID}): || {Pad(rot.X)} {Pad(rot.Y)} {Pad(rot.Z)}");
+        }
+
+        protected Vector3 PositionFromMatrix(Matrix4x4 m)
         {
             return new Vector3(m.M41, m.M42, m.M43);
         }
-        private Vector3 RotationFromMatrix(Matrix4x4 m)
+
+        protected Vector3 RotationFromMatrix(Matrix4x4 m)
         {
             float pitch, yaw, roll;
             float[,] matrix =
@@ -78,7 +64,7 @@ namespace OVR_App_Template
                 { m.M31, m.M32, m.M33}
             };
 
-            // Check for Gimbal lock, when matrix[2, 0] is ±1
+            // Check for Gimbal lock, when matrix[2, 0] is +-1
             if (matrix[2, 0] > 0.998f) // Close to +1
             {
                 pitch = (float)Math.Atan2(matrix[0, 1], matrix[0, 2]);
@@ -102,12 +88,18 @@ namespace OVR_App_Template
             return new Vector3(RadToDeg(pitch), RadToDeg(yaw), RadToDeg(roll));
         }
 
-        private float RadToDeg(float rad)
+        protected virtual void PrintDataToConsole()
+        {
+            Vector3 rot = RotationFromMatrix(matrix);
+            Console.WriteLine($"{Enum.GetName(this.Type)}({this.DeviceID}): || X{Pad(matrix.M41)} Y{Pad(matrix.M42)} Z{Pad(matrix.M43)} || X{Pad(rot.X)} Y{Pad(rot.Y)} Z{Pad(rot.Z)}");
+        }
+
+        protected float RadToDeg(float rad)
         {
             return rad * (180f / (float)Math.PI);
         }
 
-        private string Pad(object inp)
+        protected string Pad(object inp)
         {
             const int length = 5;
 
@@ -133,5 +125,9 @@ namespace OVR_App_Template
             return negative ? "-" + input.PadRight(length, '0') : "+" + input.PadRight(length, '0');
         }
 
+        protected string unToBinary(ulong inp)
+        {
+            return Convert.ToString((long)inp, 2).PadLeft(64, '0');
+        }
     }
 }

@@ -7,6 +7,7 @@ using OVRSharp.Math;
 using Valve.VR;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
+using OVR_App_Template.Devices;
 
 namespace OVR_App_Template
 {
@@ -21,29 +22,29 @@ namespace OVR_App_Template
             }
         }
 
-        public VRTrackedDevice HMD
+        public VRHMD HMD
         {
             get
             {
-                return trackedDevices[OpenVR.k_unTrackedDeviceIndex_Hmd]; //HMD is always zero, and must be connected
+                return (VRHMD)trackedDevices[OpenVR.k_unTrackedDeviceIndex_Hmd]; //HMD is always zero, and must be connected
             }
             private set
             {
                 trackedDevices[OpenVR.k_unTrackedDeviceIndex_Hmd] = value;
             }
         }
-        public VRTrackedDevice RightController
+        public VRController RightController
         {
             get
             {
-                return GetController(VRTrackedDeviceClass.RightController);
+                return (VRController)GetController(VRTrackedDeviceClass.RightController);
             }
         }
-        public VRTrackedDevice LeftController
+        public VRController LeftController
         {
             get
             {
-                return GetController(VRTrackedDeviceClass.LeftController);
+                return (VRController)GetController(VRTrackedDeviceClass.LeftController);
             }
         }
 
@@ -74,25 +75,25 @@ namespace OVR_App_Template
                 //HMD
                 if (tClass == ETrackedDeviceClass.HMD)
                 {
-                    _trackedDevices.Add(new VRTrackedDevice(i, VRTrackedDeviceClass.HMD));
+                    _trackedDevices.Add(new VRHMD(i, VRTrackedDeviceClass.HMD));
                     continue;
                 }
 
                 if (tClass == ETrackedDeviceClass.Controller && OpenVR.System.GetControllerRoleForTrackedDeviceIndex(i) == ETrackedControllerRole.LeftHand)
                 {
-                    _trackedDevices.Add(new VRTrackedDevice(i, VRTrackedDeviceClass.LeftController));
+                    _trackedDevices.Add(new VRController(i, VRTrackedDeviceClass.LeftController));
                     continue;
                 }
 
                 if (tClass == ETrackedDeviceClass.Controller && OpenVR.System.GetControllerRoleForTrackedDeviceIndex(i) == ETrackedControllerRole.RightHand)
                 {
-                    _trackedDevices.Add(new VRTrackedDevice(i, VRTrackedDeviceClass.RightController));
+                    _trackedDevices.Add(new VRController(i, VRTrackedDeviceClass.RightController));
                     continue;
                 }
 
                 if (tClass == ETrackedDeviceClass.GenericTracker)
                 {
-                    _trackedDevices.Add(new VRTrackedDevice(i, VRTrackedDeviceClass.HTCTracker));
+                    _trackedDevices.Add(new VRTracker(i, VRTrackedDeviceClass.Tracker));
                     continue;
                 }
             }
