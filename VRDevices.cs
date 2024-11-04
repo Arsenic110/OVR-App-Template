@@ -53,6 +53,7 @@ namespace OVR_App_Template
 
         public VRDevices()
         {
+            Console.CursorVisible = false;
             //update method handles device initialization
             Update();
         }

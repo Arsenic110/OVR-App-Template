@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using OVRSharp;
 using OVRSharp.Math;
 using Valve.VR;
+using System.Linq.Expressions;
 
 namespace OVR_App_Template
 {
@@ -91,7 +92,10 @@ namespace OVR_App_Template
         protected virtual void PrintDataToConsole()
         {
             Vector3 rot = RotationFromMatrix(matrix);
-            Console.WriteLine($"{Enum.GetName(this.Type)}({this.DeviceID}): || X{Pad(matrix.M41)} Y{Pad(matrix.M42)} Z{Pad(matrix.M43)} || X{Pad(rot.X)} Y{Pad(rot.Y)} Z{Pad(rot.Z)}");
+            Console.Write($"{Enum.GetName(this.Type)}({this.DeviceID}): || X{Pad(matrix.M41)} Y{Pad(matrix.M42)} Z{Pad(matrix.M43)} || X{Pad(rot.X)} Y{Pad(rot.Y)} Z{Pad(rot.Z)}");
+
+            VRTrackedDevice.DoThisXTimes(32, () => { Console.Write(" "); });
+            Console.Write("\n");
         }
 
         protected float RadToDeg(float rad)
@@ -128,6 +132,20 @@ namespace OVR_App_Template
         protected string unToBinary(ulong inp)
         {
             return Convert.ToString((long)inp, 2).PadLeft(64, '0');
+        }
+
+        public static void DoThisXTimes(int times, Action thing)
+        {
+            for(int i = 0; i < times; i++)
+            {
+                thing.Invoke();
+            }
+        }
+
+        protected virtual void ConsolePad()
+        {
+            VRTrackedDevice.DoThisXTimes(32, () => { Console.Write(" "); });
+            Console.Write("\n");
         }
     }
 }
